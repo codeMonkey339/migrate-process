@@ -1,6 +1,8 @@
 package manager.parser;
 
-public class CMDParser {
+public class CMDParser implements Parser{
+
+
 
     /**
      * breaks a string apart. Should not crash on unrecognized input
@@ -12,12 +14,12 @@ public class CMDParser {
      *  and connect to the master running on <hostname>, otherwise run as a
      *  master
      * 2. ps (prints a list of local running processes and their arguments)
-     * 3. quit (exit the ProcessManager)
+     * 3. quit (exit the AbstractProcessManager)
      *
      * @param input
      * @return
      */
-    public String[] parse(String input){
+    public ParsedCMD parse(String input){
         //todo: parse the input string into
         return null;
     }

@@ -1,11 +1,11 @@
 package manager.load_balancer;
 
-import manager.ProcessManager;
+import manager.AbstractProcessManager;
 
 public class LoadBalancer {
-    private final ProcessManager manager;
+    private final AbstractProcessManager manager;
 
-    public LoadBalancer(ProcessManager m){
+    public LoadBalancer(AbstractProcessManager m){
         manager = m;
     }
 
