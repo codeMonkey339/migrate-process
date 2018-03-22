@@ -1,6 +1,7 @@
 package manager;
 
 import lombok.Getter;
+import manager.cmd_monitor.CMDMonitor;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -51,8 +52,18 @@ public class Master extends AbstractProcessManager{
     @Override
     public void run(String[] args){
         super.init();
-        new ConnListener().run();
-        new LoadDistributor().run();
-        super.monitor();
+        Thread connThread = new ConnListener();
+        Thread loadThread = new LoadDistributor();
+        new CMDMonitor(this).start();
+        loadThread.start();
+        connThread.start();
+        try{
+            loadThread.join();
+            connThread.join();
+        }catch(InterruptedException e){
+            LOGGER.log(Level.INFO, "the waiting load thread is interrupted " +
+                    "{0}", e.toString());
+
+        }
     }
 }
