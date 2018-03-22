@@ -5,11 +5,11 @@ import lombok.Data;
 import lombok.Getter;
 import manager.cmd_monitor.CMDMonitor;
 import manager.msg.Message;
+import processes.MigratableProcess;
 
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -67,6 +67,7 @@ public class Master extends AbstractProcessManager{
     private class LoadDistributor extends Thread{
         @Override
         public void run(){
+            //todo: concurrency problem? accessing the clients
             while(true){
                 try{
                     Thread.sleep(AbstractProcessManager.getDURATION());
@@ -74,18 +75,55 @@ public class Master extends AbstractProcessManager{
                     LOGGER.log(Level.INFO, "Thread Interrupted from " +
                             "sleep");
                 }
-                List<Integer> processNums = clients.stream()
-                        .map(socketConn -> getProcessNum(socketConn))
-                        .collect(Collectors.toList());
-                //todo: assume server won't process processes now
-                Integer totalNum = processNums.stream()
-                        .mapToInt(Integer::intValue)
-                        .sum();
 
+                if (clients.size() < 2){
+                    continue;
+                }
+
+                findTransNums(clients);
+                transportProcesses(clients);
             }
 
         }
 
+        private void transportProcesses(List<SocketConn> clients){
+            List res = pullProcesses(clients);
+            pushProcesses(clients, res);
+        }
+
+        private List<MigratableProcess> pullProcesses(List<SocketConn>
+                                                              clients){
+            //todo:
+            return null;
+        }
+
+
+        private void pushProcesses(List<SocketConn> clients,
+                                   List<MigratableProcess> processes){
+            //todo:
+        }
+
+
+
+        private List<Integer> findTransNums(List<SocketConn> clients){
+            List<Integer> processNums = clients.stream()
+                    .map(socketConn -> getProcessNum(socketConn))
+                    .collect(Collectors.toList());
+            //todo: assume server won't process processes now
+            Double avg = processNums.stream()
+                    .mapToInt(Integer::intValue)
+                    .average()
+                    .getAsDouble();
+            List<Integer> transportNums = processNums.subList(0,
+                    processNums.size() - 1).stream()
+                    .map(i -> (int)Math.ceil(i - avg))
+                    .collect(Collectors.toList());
+            Integer offset = transportNums.stream()
+                    .mapToInt(Integer::intValue)
+                    .sum();
+            transportNums.add(-1 * offset);
+            return transportNums;
+        }
 
         /**
          * query the # of processes running a slave
