@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.Getter;
 import manager.cmd_monitor.CMDMonitor;
+import manager.entity.SocketConn;
 import manager.msg.Message;
 import processes.MigratableProcess;
 
@@ -22,13 +23,6 @@ public class Master extends AbstractProcessManager{
     private String DEFAULT_PORT = "9999";
     private List<SocketConn> clients = new ArrayList();
 
-    @Builder
-    @Data
-    private class SocketConn{
-        private ObjectOutputStream out;
-        private ObjectInputStream in;
-        private Socket client;
-    }
 
 
     private class ConnListener extends Thread{
@@ -135,8 +129,8 @@ public class Master extends AbstractProcessManager{
                     .type(Message.TYPE.QUERY)
                     .build();
             try{
-                socketConn.out.writeObject(query);
-                Message result = (Message)socketConn.in.readObject();
+                socketConn.getOut().writeObject(query);
+                Message result = (Message)socketConn.getIn().readObject();
                 return result.getObjNum();
             }catch(IOException e){
                 LOGGER.log(Level.WARNING, "Failed to serialize a query " +

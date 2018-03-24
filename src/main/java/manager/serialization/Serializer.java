@@ -14,7 +14,7 @@ public class Serializer {
         return bs.toByteArray();
     }
 
-    public static Object deserialize(byte[]) throws IOException{
+    public static Object deserialize(byte[] data) throws IOException{
         //todo:
         return null;
     }
