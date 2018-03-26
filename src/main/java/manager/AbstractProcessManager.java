@@ -18,7 +18,7 @@ abstract public class AbstractProcessManager {
             .class.getName());
 
     @Getter
-    private static final int DURATION = 5000; // sleep time
+    private static final int DURATION = 500; // sleep time
 
     /**
      * start monitoring the standard in for requests to launch processes
@@ -37,7 +37,7 @@ abstract public class AbstractProcessManager {
     public static void main(String[] args){
         //todo: main in an abstract class?
         //todo: based on args, instantiate different type
-        if (args.length > 1){
+        if (args.length <= 1){
             new Master().run(args);
         }else{
             new Slave().run(args);

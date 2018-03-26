@@ -1,6 +1,5 @@
 package manager;
 
-import com.sun.corba.se.pept.encoding.OutputObject;
 import manager.cmd_monitor.CMDMonitor;
 import manager.entity.SocketConn;
 import manager.msg.Message;
@@ -29,17 +28,24 @@ public class Slave extends AbstractProcessManager {
     private class QueryListener extends Thread{
         @Override
         public void run(){
+            LOGGER.log(INFO, "Starting a query listening");
             while(true){
                 try{
+                    Thread.sleep(AbstractProcessManager.getDURATION());
                     ObjectInputStream is = conn.getIn();
                     Message query = (Message)is.readObject();
                     handleQuery(query);
                 }catch (IOException e){
+                    StringWriter sw = new StringWriter();
+                    e.printStackTrace(new PrintWriter(sw));
                     LOGGER.log(INFO, "IOException in handling queries " +
-                            "from server {0}", e.toString());
+                            "from server {0}\n{1}", new Object[]{e.toString(),
+                            sw.toString()});
                 }catch (ClassNotFoundException e){
                     LOGGER.log(INFO, "ClassNotFoundException occurred " +
                             "when handling incoming query {0}", e.toString());
+                }catch (InterruptedException e){
+                    LOGGER.log(INFO, "Sleep interrupted");
                 }
             }
         }
@@ -61,6 +67,8 @@ public class Slave extends AbstractProcessManager {
 
     private void handleNumQuery(Message query){
         //todo: need to add a block here to avoid concurrent access
+        LOGGER.log(INFO, "Slave handling incoming query for number of " +
+                "running processes");
         Message reply = Message.builder()
                 .type(Num)
                 .objNum(processes.size())
@@ -77,6 +85,8 @@ public class Slave extends AbstractProcessManager {
 
     private void handleGetQuery(Message query){
         //todo: synchronization problem
+        LOGGER.log(INFO, "Slave handling incoming query to pull overloaded " +
+                "processes");
         Integer num = query.getObjNum();
         List<MigratableProcess> shifts = processes.subList(0, num);
         ObjectOutputStream os = conn.getOut();
@@ -96,6 +106,7 @@ public class Slave extends AbstractProcessManager {
 
     private void handleMigoutQuery(Message query){
         //todo: synchronization
+        LOGGER.log(INFO, "Slave receiving incoming processes");
         List<MigratableProcess> newProcs = (List)query.getProcesses();
         processes.addAll(newProcs);
     }
@@ -103,6 +114,7 @@ public class Slave extends AbstractProcessManager {
 
     @Override
     public void run(String[] args){
+        LOGGER.log(INFO, "Staring a slave");
         super.init();
         connectoToMaster(args[1]);
         Thread queryThread = new QueryListener();
@@ -120,18 +132,23 @@ public class Slave extends AbstractProcessManager {
     private void connectoToMaster(String arg){
         ArgParser argParser = new ArgParser();
         ParsedArgs parsedArgs = argParser.parse(arg);
+        LOGGER.log(INFO, "Slave connecting to host at {0}:{1}", new Object[]{parsedArgs
+                .getIp(), parsedArgs.getPort()});
         try{
             server = new Socket(parsedArgs.getIp(), Integer.parseInt(parsedArgs
                     .getPort()));
-            ObjectInputStream is = new ObjectInputStream(server
-                    .getInputStream());
             ObjectOutputStream os = new ObjectOutputStream(server
                     .getOutputStream());
+            ObjectInputStream is = new ObjectInputStream(server
+                    .getInputStream());
             conn = SocketConn.builder()
                     .client(server)
                     .in(is)
                     .out(os)
                     .build();
+            LOGGER.log(INFO, "Slave established socket connection with " +
+                    "master at {0}:{1}", new Object[]{parsedArgs.getIp(),
+                    parsedArgs.getPort()});
         }catch (IOException e){
             LOGGER.log(Level.WARNING, "Failed to connect to server");
             throw new RuntimeException(e);

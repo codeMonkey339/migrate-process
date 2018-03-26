@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.logging.Level;
+import java.util.logging.LogManager;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -31,10 +32,15 @@ public class Master extends AbstractProcessManager{
     private class ConnListener extends Thread{
         @Override
         public void run(){
+            LOGGER.log(Level.INFO, "Starting the thread for connection " +
+                    "listener");
             ServerSocket sock;
             try{
                 sock = new ServerSocket(Integer.parseInt
                         (DEFAULT_PORT));
+                LOGGER.log(Level.INFO, "Started server at {0}:{1}", new
+                        Object[]{sock
+                        .getInetAddress().getHostAddress(), sock.getLocalPort()});
             }catch (IOException e){
                 LOGGER.log(Level.WARNING,"Failed to create the listening " +
                         "socket on the master instance");
@@ -42,6 +48,11 @@ public class Master extends AbstractProcessManager{
             }
 
             while(true){
+                try{
+                    Thread.sleep(AbstractProcessManager.getDURATION());
+                }catch (InterruptedException e){
+                    LOGGER.log(Level.INFO, "sleep interrupted {0}", e.toString());
+                }
                 try{
                     Socket client = sock.accept();
                     ObjectInputStream is = new ObjectInputStream(client
@@ -53,6 +64,8 @@ public class Master extends AbstractProcessManager{
                             .in(is)
                             .out(os)
                             .build());
+                    LOGGER.log(Level.INFO, "Server accepted a new connection" +
+                            " request from slave");
                 }catch (IOException e){
                     LOGGER.log(Level.INFO, "Failed to accept a connection " +
                             "from a new client {0}", e.toString());
@@ -66,6 +79,8 @@ public class Master extends AbstractProcessManager{
         public void run(){
             //todo: concurrency problem? accessing the clients at the same
             // time as ConnListener
+            LOGGER.log(Level.INFO, "Started the thread for balancing load " +
+                    "among slaves");
             while(true){
                 try{
                     Thread.sleep(AbstractProcessManager.getDURATION());
@@ -86,6 +101,7 @@ public class Master extends AbstractProcessManager{
 
         private void transportProcesses(List<SocketConn> clients,
                                         List<Integer> shifts){
+            LOGGER.log(Level.INFO, "Transporting processes among slaves");
             List res = pullProcesses(clients, shifts);
             pushProcesses(clients, res, shifts);
         }
@@ -98,6 +114,7 @@ public class Master extends AbstractProcessManager{
          */
         private List<MigratableProcess> pullProcesses(List<SocketConn>
                                                 clients, List<Integer> shifts){
+            LOGGER.log(Level.INFO, "Pulling processes from overloaded slaves");
             List<MigratableProcess> results = new ArrayList<>();
             for (final ListIterator<Integer> it = shifts.listIterator(); it
                     .hasNext();){
@@ -137,6 +154,7 @@ public class Master extends AbstractProcessManager{
          */
         private void pushProcesses(List<SocketConn> clients,
                        List<MigratableProcess> processes, List<Integer> shifts){
+            LOGGER.log(Level.INFO, "Pushing processes to underloaded slaves");
             for (final ListIterator<Integer> it = shifts.listIterator(); it
                     .hasNext();){
                 int idx = it.nextIndex();
@@ -172,6 +190,8 @@ public class Master extends AbstractProcessManager{
 
 
         private List<Integer> findTransNums(List<SocketConn> clients){
+            LOGGER.log(Level.INFO, "Finding the transport number of " +
+                    "different slaves");
             List<Integer> processNums = clients.stream()
                     .map(socketConn -> getProcessNum(socketConn))
                     .collect(Collectors.toList());
@@ -197,6 +217,7 @@ public class Master extends AbstractProcessManager{
          * @return
          */
         private int getProcessNum(SocketConn socketConn){
+            LOGGER.log(Level.INFO, "Querying slaves for their processes");
             Message query = Message.builder()
                     .type(Message.TYPE.QUERY)
                     .build();
@@ -218,15 +239,19 @@ public class Master extends AbstractProcessManager{
 
     @Override
     public void run(String[] args){
+        LOGGER.log(Level.INFO, "Starting the server running at " +
+                "localhost:{0}", DEFAULT_PORT);
         super.init();
         Thread connThread = new ConnListener();
         Thread loadThread = new LoadDistributor();
-        new CMDMonitor(this).start();
+        Thread cmdThread = new CMDMonitor(this);
         loadThread.start();
         connThread.start();
+        cmdThread.start();
         try{
             loadThread.join();
             connThread.join();
+            cmdThread.join();
         }catch(InterruptedException e){
             LOGGER.log(Level.INFO, "the waiting load thread is interrupted " +
                     "{0}", e.toString());
