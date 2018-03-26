@@ -23,7 +23,7 @@ public class CMDMonitor extends Thread {
 
     @Override
     public void run(){
-        //todo: monitor the system in
+        monitor();
     }
 
     /**

@@ -11,7 +11,7 @@ import java.util.List;
 @Builder
 public class Message {
     public enum TYPE{
-        QUERY, GET, NUM, MigOut, MigIn
+        QUERY, GET, Num, MigOut, MigIn
     }
 
     /**
