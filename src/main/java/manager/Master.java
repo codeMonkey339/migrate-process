@@ -5,6 +5,7 @@ import manager.cmd_monitor.CMDMonitor;
 import manager.entity.SocketConn;
 import manager.msg.Message;
 import processes.MigratableProcess;
+import utils.ExceptionUtils;
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -227,7 +228,10 @@ public class Master extends AbstractProcessManager{
                 return result.getObjNum();
             }catch(IOException e){
                 LOGGER.log(Level.WARNING, "Failed to serialize a query " +
-                        "message {0}", e.toString());
+                        "message {0},{1}", new Object[]{e.toString(),
+                        ExceptionUtils.stackTrace2String(e)});
+                LOGGER.log(Level.INFO, "Removing the disconnected slave");
+                clients.remove(socketConn);
                         return 0;
             }catch (ClassNotFoundException e){
                 LOGGER.log(Level.WARNING, "Failed to read object from client" +

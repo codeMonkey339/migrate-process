@@ -6,6 +6,7 @@ import manager.msg.Message;
 import manager.parser.ArgParser;
 import manager.parser.ParsedArgs;
 import processes.MigratableProcess;
+import utils.ExceptionUtils;
 
 import java.io.*;
 import java.net.Socket;
@@ -36,11 +37,9 @@ public class Slave extends AbstractProcessManager {
                     Message query = (Message)is.readObject();
                     handleQuery(query);
                 }catch (IOException e){
-                    StringWriter sw = new StringWriter();
-                    e.printStackTrace(new PrintWriter(sw));
                     LOGGER.log(INFO, "IOException in handling queries " +
                             "from server {0}\n{1}", new Object[]{e.toString(),
-                            sw.toString()});
+                            ExceptionUtils.stackTrace2String(e)});
                 }catch (ClassNotFoundException e){
                     LOGGER.log(INFO, "ClassNotFoundException occurred " +
                             "when handling incoming query {0}", e.toString());
