@@ -1,7 +1,5 @@
 package manager;
 
-import lombok.Builder;
-import lombok.Data;
 import lombok.Getter;
 import manager.cmd_monitor.CMDMonitor;
 import manager.entity.SocketConn;
@@ -13,9 +11,14 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+
+import static manager.msg.Message.TYPE.GET;
+import static manager.msg.Message.TYPE.MigIn;
+import static manager.msg.Message.TYPE.MigOut;
 
 public class Master extends AbstractProcessManager{
     private final Logger LOGGER = Logger.getLogger(Master.class.getName());
@@ -61,7 +64,8 @@ public class Master extends AbstractProcessManager{
     private class LoadDistributor extends Thread{
         @Override
         public void run(){
-            //todo: concurrency problem? accessing the clients
+            //todo: concurrency problem? accessing the clients at the same
+            // time as ConnListener
             while(true){
                 try{
                     Thread.sleep(AbstractProcessManager.getDURATION());
@@ -74,27 +78,95 @@ public class Master extends AbstractProcessManager{
                     continue;
                 }
 
-                findTransNums(clients);
-                transportProcesses(clients);
+                List<Integer> shifts = findTransNums(clients);
+                transportProcesses(clients, shifts);
             }
 
         }
 
-        private void transportProcesses(List<SocketConn> clients){
-            List res = pullProcesses(clients);
-            pushProcesses(clients, res);
+        private void transportProcesses(List<SocketConn> clients,
+                                        List<Integer> shifts){
+            List res = pullProcesses(clients, shifts);
+            pushProcesses(clients, res, shifts);
         }
 
+        /**
+         * pull processes from overloaded clients
+         * @param clients
+         * @param shifts
+         * @return
+         */
         private List<MigratableProcess> pullProcesses(List<SocketConn>
-                                                              clients){
-            //todo:
-            return null;
+                                                clients, List<Integer> shifts){
+            List<MigratableProcess> results = new ArrayList<>();
+            for (final ListIterator<Integer> it = shifts.listIterator(); it
+                    .hasNext();){
+                int idx = it.nextIndex();
+                Integer shift = it.next();
+                if (shift > 0){
+                    SocketConn conn = clients.get(idx);
+                    try{
+                        conn.getOut().writeObject(Message.builder()
+                                .type(GET)
+                                .objNum(shift)
+                                .build());
+                        Message reply = (Message) conn.getIn().readObject();
+                        if (reply.getType() != MigOut){
+                            LOGGER.log(Level.INFO, "Slaved sent wrong type " +
+                                    "of response to GET request {0}", reply
+                                    .getType());
+                        }
+                        results.addAll(reply.getProcesses());
+                    }catch(IOException e){
+                        LOGGER.log(Level.WARNING, "Failed to pull processes " +
+                                "from connection {0}", idx);
+                    }catch(ClassNotFoundException e){
+                        LOGGER.log(Level.WARNING, "Reading object into a not" +
+                                " found Class");
+                    }
+                }
+            }
+            return results;
         }
 
-
+        /**
+         * push processes to underloaded clients
+         * @param clients
+         * @param processes
+         * @param shifts
+         */
         private void pushProcesses(List<SocketConn> clients,
-                                   List<MigratableProcess> processes){
-            //todo:
+                       List<MigratableProcess> processes, List<Integer> shifts){
+            for (final ListIterator<Integer> it = shifts.listIterator(); it
+                    .hasNext();){
+                int idx = it.nextIndex();
+                Integer shift = it.next();
+                if (shift < 0){
+                    SocketConn conn = clients.get(idx);
+                    try{
+                        List<MigratableProcess> procs;
+                        if (processes.size() > (-1 * shift)){
+                            procs = processes.subList
+                                    (0, -1 * shift);
+                            processes = processes.subList(-1 * shift,
+                                    processes.size());
+                        }else{
+                            procs = processes.subList(0, processes.size());
+                            processes.removeAll(processes);
+                        }
+                        conn.getOut().writeObject(Message.builder()
+                                .type(MigIn)
+                                .objNum(-1 * shift)
+                                .processes(procs));
+                        if (processes.size() == 0){
+                            return;
+                        }
+                    }catch (IOException e){
+                        LOGGER.log(Level.WARNING, "IOException when " +
+                                "transferring processes to client {0}", idx);
+                    }
+                }
+            }
         }
 
 
@@ -103,7 +175,7 @@ public class Master extends AbstractProcessManager{
             List<Integer> processNums = clients.stream()
                     .map(socketConn -> getProcessNum(socketConn))
                     .collect(Collectors.toList());
-            //todo: assume server won't process processes now
+            //todo: assume server itself won't process processes now
             Double avg = processNums.stream()
                     .mapToInt(Integer::intValue)
                     .average()
