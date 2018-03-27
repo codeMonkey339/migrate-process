@@ -82,6 +82,10 @@ public class Slave extends AbstractProcessManager {
         }
     }
 
+    /**
+     * reply to master the number of processes running on the slave
+     * @param query
+     */
     private void handleGetQuery(Message query){
         //todo: synchronization problem
         LOGGER.log(INFO, "Slave handling incoming query to pull overloaded " +

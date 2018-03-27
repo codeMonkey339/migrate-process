@@ -231,8 +231,9 @@ public class Master extends AbstractProcessManager{
                         "message {0},{1}", new Object[]{e.toString(),
                         ExceptionUtils.stackTrace2String(e)});
                 LOGGER.log(Level.INFO, "Removing the disconnected slave");
-                clients.remove(socketConn);
-                        return 0;
+                //todo: what to do when the connection closed due to IO
+                throw new RuntimeException("IOException when serializing a " +
+                        "message");
             }catch (ClassNotFoundException e){
                 LOGGER.log(Level.WARNING, "Failed to read object from client" +
                         " {0}", e.toString());

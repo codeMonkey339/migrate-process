@@ -4,12 +4,15 @@ import lombok.Builder;
 import lombok.Data;
 import processes.MigratableProcess;
 
+import java.io.Serializable;
 import java.util.List;
 
 
 @Data
 @Builder
-public class Message {
+public class Message implements Serializable{
+    private static final long serialVersionUID = 4181753163487752139L;
+
     public enum TYPE{
         QUERY, GET, Num, MigOut, MigIn
     }
