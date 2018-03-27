@@ -54,10 +54,13 @@ public class Slave extends AbstractProcessManager {
         switch(query.getType()){
             case QUERY:
                 handleNumQuery(query);
+                break;
             case GET:
                 handleGetQuery(query);
+                break;
             case MigIn:
                 handleMigoutQuery(query);
+                break;
             default:
                 LOGGER.log(INFO,"Unknown type of incoming query {0}", query
                         .getType());
