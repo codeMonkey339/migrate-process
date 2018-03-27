@@ -1,5 +1,6 @@
 package manager.parser;
 
+
 public class CMDParser implements Parser{
 
 
@@ -10,9 +11,6 @@ public class CMDParser implements Parser{
      *
      * currently only 3 ops are supported:
      * 1. <processName> arg1 arg2 ...
-     *  1.1 if "-c <hostname>", then this instance should be run as a slave
-     *  and connect to the master running on <hostname>, otherwise run as a
-     *  master
      * 2. ps (prints a list of local running processes and their arguments)
      * 3. quit (exit the AbstractProcessManager)
      *
@@ -20,7 +18,23 @@ public class CMDParser implements Parser{
      * @return
      */
     public ParsedCMD parse(String input){
-        //todo: parse the input string into
-        return null;
+        String[] tokens = input.split(" ");
+        switch(tokens[0]){
+            case "ps":
+                return ParsedCMD.builder()
+                        .cmd(ParsedCMD.CMD.PS)
+                        .args(new String[0])
+                        .build();
+            case "quit":
+                return ParsedCMD.builder()
+                        .cmd(ParsedCMD.CMD.QUIT)
+                        .args(new String[0])
+                        .build();
+            default:
+                return ParsedCMD.builder()
+                        .cmd(ParsedCMD.CMD.PROCESS)
+                        .args(tokens)
+                        .build();
+        }
     }
 }

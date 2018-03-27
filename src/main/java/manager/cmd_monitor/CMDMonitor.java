@@ -38,11 +38,14 @@ public class CMDMonitor extends Thread {
         while(true){
             //todo: how can this loop be more efficient
             try{
+                Thread.sleep(AbstractProcessManager.getDURATION());
                 String cmd = reader.readLine();
                 ParsedCMD parsedRes = cmdParser.parse(cmd);
                 processCMD(parsedRes);
             }catch (IOException e){
                 LOGGER.log(Level.WARNING, e.toString());
+            }catch (InterruptedException e){
+                LOGGER.log(Level.INFO, "Interrupted when sleep in CMDMonitor");
             }
         }
     }
@@ -52,10 +55,13 @@ public class CMDMonitor extends Thread {
         switch(parsedRes.cmd){
             case PROCESS:
                 processNewProcess(parsedRes);
+                break;
             case PS:
                 processPS(parsedRes);
+                break;
             case QUIT:
                 processQUIT(parsedRes);
+                break;
             default:
                 LOGGER.log(Level.WARNING, "Undefined cmd type{0}", parsedRes
                         .cmd);
@@ -67,7 +73,12 @@ public class CMDMonitor extends Thread {
     }
 
     private void processPS(ParsedCMD parsedCMD){
-        //todo:
+        if (manager.getProcesses().size() == 0){
+            System.out.println("no running processes");
+        }else{
+            manager.getProcesses().stream()
+                    .forEach(proc -> System.out.println(proc.toString()));
+        }
     }
 
     private void processQUIT(ParsedCMD parsedCMD){

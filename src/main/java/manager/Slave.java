@@ -24,7 +24,6 @@ public class Slave extends AbstractProcessManager {
     private Socket server;
     private SocketConn conn;
     private final Logger LOGGER = Logger.getLogger(Slave.class.getName());
-    List<MigratableProcess> processes = new ArrayList<>();
 
     private class QueryListener extends Thread{
         @Override
