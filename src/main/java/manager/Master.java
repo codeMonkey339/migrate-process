@@ -218,6 +218,7 @@ public class Master extends AbstractProcessManager{
          * @return
          */
         private int getProcessNum(SocketConn socketConn){
+            //todo: problem is thread will close due to broken pipe
             LOGGER.log(Level.INFO, "Querying slaves for their processes");
             Message query = Message.builder()
                     .type(Message.TYPE.QUERY)
@@ -231,7 +232,6 @@ public class Master extends AbstractProcessManager{
                         "message {0},{1}", new Object[]{e.toString(),
                         ExceptionUtils.stackTrace2String(e)});
                 LOGGER.log(Level.INFO, "Removing the disconnected slave");
-                //todo: what to do when the connection closed due to IO
                 throw new RuntimeException("IOException when serializing a " +
                         "message");
             }catch (ClassNotFoundException e){

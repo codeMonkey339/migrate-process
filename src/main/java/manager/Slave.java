@@ -136,10 +136,14 @@ public class Slave extends AbstractProcessManager {
         try{
             queryThread.join();
             queryThread.join();
+            conn.getClient().close();
             LOGGER.log(INFO, "quiting the slave process manager");
         }catch (InterruptedException e){
             LOGGER.log(INFO, "query thread is interrupted {0}", e
                     .toString());
+        }catch(IOException e){
+            LOGGER.log(INFO, "IOException in closing socket connected to " +
+                    "server");
         }
     }
 
