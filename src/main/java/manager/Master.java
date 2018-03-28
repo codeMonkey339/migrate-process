@@ -17,6 +17,7 @@ import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static manager.msg.Message.TYPE.GET;
 import static manager.msg.Message.TYPE.MigIn;
@@ -82,7 +83,7 @@ public class Master extends AbstractProcessManager{
             // time as ConnListener
             LOGGER.log(Level.INFO, "Started the thread for balancing load " +
                     "among slaves");
-            while(true){
+            while(running){
                 try{
                     Thread.sleep(AbstractProcessManager.getDURATION());
                 }catch(InterruptedException e){
@@ -97,6 +98,8 @@ public class Master extends AbstractProcessManager{
                 List<Integer> shifts = findTransNums(clients);
                 transportProcesses(clients, shifts);
             }
+            LOGGER.log(Level.INFO, "Exiting the thread for balancing load " +
+                    "among classes");
 
         }
 
@@ -191,12 +194,22 @@ public class Master extends AbstractProcessManager{
 
 
         private List<Integer> findTransNums(List<SocketConn> clients){
+            //todo: assume server itself won't process processes now
             LOGGER.log(Level.INFO, "Finding the transport number of " +
                     "different slaves");
+            //todo: error, concurrent modifications to clients
             List<Integer> processNums = clients.stream()
                     .map(socketConn -> getProcessNum(socketConn))
                     .collect(Collectors.toList());
-            //todo: assume server itself won't process processes now
+            IntStream.range(0, clients.size())
+                    .forEach(i -> {
+                        if (processNums.get(i) < 0){
+                            clients.remove(i);
+                            processNums.remove(i);
+                            LOGGER.log(Level.INFO, "Removing a disconnected " +
+                                    "client from the connection pool");
+                        }
+                    });
             Double avg = processNums.stream()
                     .mapToInt(Integer::intValue)
                     .average()
@@ -231,9 +244,7 @@ public class Master extends AbstractProcessManager{
                 LOGGER.log(Level.WARNING, "Failed to serialize a query " +
                         "message {0},{1}", new Object[]{e.toString(),
                         ExceptionUtils.stackTrace2String(e)});
-                LOGGER.log(Level.INFO, "Removing the disconnected slave");
-                throw new RuntimeException("IOException when serializing a " +
-                        "message");
+                return -1;
             }catch (ClassNotFoundException e){
                 LOGGER.log(Level.WARNING, "Failed to read object from client" +
                         " {0}", e.toString());

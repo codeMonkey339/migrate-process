@@ -35,9 +35,6 @@ public class Slave extends AbstractProcessManager {
                 try{
                     Thread.sleep(AbstractProcessManager.getDURATION());
                     ObjectInputStream is = conn.getIn();
-                    if (is.available() <= 0){
-                        continue;
-                    }
                     Message query = (Message)is.readObject();
                     handleQuery(query);
                 }catch (IOException e){
