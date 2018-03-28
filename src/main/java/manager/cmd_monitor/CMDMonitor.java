@@ -16,6 +16,7 @@ public class CMDMonitor extends Thread {
     private final AbstractProcessManager manager;
     private final CMDParser cmdParser = new CMDParser();
     private final Logger LOGGER = Logger.getLogger(CMDMonitor.class.getName());
+    private boolean running = true;
 
     public CMDMonitor(AbstractProcessManager manager){
         this.manager = manager;
@@ -35,7 +36,7 @@ public class CMDMonitor extends Thread {
     protected void monitor(){
         BufferedReader reader = new BufferedReader(new InputStreamReader
                 (System.in));
-        while(true){
+        while(running){
             //todo: how can this loop be more efficient
             try{
                 Thread.sleep(AbstractProcessManager.getDURATION());
@@ -48,6 +49,7 @@ public class CMDMonitor extends Thread {
                 LOGGER.log(Level.INFO, "Interrupted when sleep in CMDMonitor");
             }
         }
+        LOGGER.log(Level.INFO, "quit the CMDMonitor");
     }
 
 
@@ -82,7 +84,8 @@ public class CMDMonitor extends Thread {
     }
 
     private void processQUIT(ParsedCMD parsedCMD){
-        //todo:
+        manager.quit();
+        running = false;
     }
 
 }

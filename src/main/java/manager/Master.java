@@ -48,7 +48,7 @@ public class Master extends AbstractProcessManager{
                 throw new RuntimeException(e);
             }
 
-            while(true){
+            while(running){
                 try{
                     Thread.sleep(AbstractProcessManager.getDURATION());
                 }catch (InterruptedException e){

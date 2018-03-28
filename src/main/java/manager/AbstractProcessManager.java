@@ -25,6 +25,7 @@ abstract public class AbstractProcessManager {
 
     @Getter
     private static final int DURATION = 500; // sleep time
+    protected boolean running = true;
 
     /**
      * start monitoring the standard in for requests to launch processes
@@ -50,5 +51,9 @@ abstract public class AbstractProcessManager {
         }
 
     }
-    
+
+    public void quit(){
+        running = false;
+    }
+
 }

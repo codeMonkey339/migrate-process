@@ -24,15 +24,20 @@ public class Slave extends AbstractProcessManager {
     private Socket server;
     private SocketConn conn;
     private final Logger LOGGER = Logger.getLogger(Slave.class.getName());
+    private Thread queryThread;
+    private Thread cmdThread;
 
     private class QueryListener extends Thread{
         @Override
         public void run(){
             LOGGER.log(INFO, "Starting a query listening");
-            while(true){
+            while(running){
                 try{
                     Thread.sleep(AbstractProcessManager.getDURATION());
                     ObjectInputStream is = conn.getIn();
+                    if (is.available() <= 0){
+                        continue;
+                    }
                     Message query = (Message)is.readObject();
                     handleQuery(query);
                 }catch (IOException e){
@@ -46,7 +51,9 @@ public class Slave extends AbstractProcessManager {
                     LOGGER.log(INFO, "Sleep interrupted");
                 }
             }
+            LOGGER.log(INFO, "Quiting the slave query listener");
         }
+
     }
 
     private void handleQuery(Message query){
@@ -122,17 +129,25 @@ public class Slave extends AbstractProcessManager {
         LOGGER.log(INFO, "Staring a slave");
         super.init();
         connectoToMaster(args[1]);
-        Thread queryThread = new QueryListener();
-        new CMDMonitor(this).start();
+        queryThread = new QueryListener();
+        cmdThread = new CMDMonitor(this);
         queryThread.start();
+        cmdThread.start();
         try{
             queryThread.join();
+            queryThread.join();
+            LOGGER.log(INFO, "quiting the slave process manager");
         }catch (InterruptedException e){
             LOGGER.log(INFO, "query thread is interrupted {0}", e
                     .toString());
         }
     }
 
+    @Override
+    public void quit(){
+        running = false;
+        queryThread.interrupt();
+    }
 
     private void connectoToMaster(String arg){
         ArgParser argParser = new ArgParser();
@@ -159,6 +174,5 @@ public class Slave extends AbstractProcessManager {
             throw new RuntimeException(e);
         }
     }
-
 
 }
