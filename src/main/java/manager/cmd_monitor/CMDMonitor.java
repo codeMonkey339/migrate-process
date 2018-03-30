@@ -14,17 +14,21 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.rmi.AccessException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class CMDMonitor extends Thread {
     private final AbstractProcessManager manager;
     private final CMDParser cmdParser = new CMDParser();
     private final Logger LOGGER = Logger.getLogger(CMDMonitor.class.getName());
     private boolean running = true;
+    private final String MIGRATABLE_PROCESS_PACKAGE = "processes.impl";
 
     public CMDMonitor(AbstractProcessManager manager){
         this.manager = manager;
@@ -91,12 +95,12 @@ public class CMDMonitor extends Thread {
         String className = args[0];
 
         try{
-            Class c = Class.forName(className);
-            Class interfaces[] = c.getInterfaces();
+            Class c = Class.forName(MIGRATABLE_PROCESS_PACKAGE.concat(".")
+                    .concat(className));
+            List<Class> interfaces = getInterfaces(c);
             List<String> requiredInterfaces = Arrays.asList("Runnable",
                     "Serializable");
-            Arrays.stream(interfaces)
-                    .forEach(i -> {
+            interfaces.forEach(i -> {
                         if (requiredInterfaces.contains(i)){
                             requiredInterfaces.remove(i);
                         }
@@ -147,6 +151,29 @@ public class CMDMonitor extends Thread {
     private void processQUIT(ParsedCMD parsedCMD){
         manager.quit();
         running = false;
+    }
+
+    /**
+     * get the interfaces implemented by input class and its super class
+     * recursively
+     * @param c
+     * @return
+     */
+    private List<Class> getInterfaces(Class c){
+        Class superClass = c.getSuperclass();
+        List<Class> result = new ArrayList<>();
+        List<Class> parentInterfaces = new ArrayList<>();
+        if (Objects.nonNull(superClass)){
+            parentInterfaces = getInterfaces(superClass);
+        }
+        Class interfaces[] = c.getInterfaces();
+        result = Arrays.asList(interfaces);
+        if (parentInterfaces.size() > 0){
+            return Stream.concat(parentInterfaces.stream(), result.stream())
+                    .collect(Collectors.toList());
+        }else{
+            return result;
+        }
     }
 
 }
