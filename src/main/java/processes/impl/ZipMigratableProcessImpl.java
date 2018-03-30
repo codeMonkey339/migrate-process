@@ -3,6 +3,7 @@ package processes.impl;
 import processes.AbstractMigratableProcessImpl;
 import transactional.TransactionalFileInputStream;
 import transactional.TransactionalFileOutputStream;
+import utils.ExceptionUtils;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -24,6 +25,7 @@ public class ZipMigratableProcessImpl extends AbstractMigratableProcessImpl {
 
     @Override
     public void run() {
+        running = true;
         zipFile(super.getArgs()[1], super.getArgs()[2]);
     }
 
@@ -48,14 +50,15 @@ public class ZipMigratableProcessImpl extends AbstractMigratableProcessImpl {
                     LOGGER.log(Level.INFO, "Finished zipping a file");
                     return;
                 }else{
-                    LOGGER.log(Level.INFO, "Reading char num {0}", readn);
+                    //LOGGER.log(Level.INFO, "Reading char num {0}", readn);
                     os.write(buffer, 0, readn);
                 }
             }catch(InterruptedException e){
                 LOGGER.log(Level.INFO, "Interrupted in sleep when zipping a " +
                         "file");
             }catch (IOException e){
-                throw new RuntimeException("IO error when zipping the file");
+                throw new RuntimeException("IO error when zipping the " +
+                        "file\n" + ExceptionUtils.stackTrace2String(e));
             }
         }
     }

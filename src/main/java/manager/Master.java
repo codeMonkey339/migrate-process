@@ -200,19 +200,10 @@ public class Master extends AbstractProcessManager{
             //todo: assume server itself won't process processes now
             LOGGER.log(Level.INFO, "Finding the transport number of " +
                     "different slaves");
-            //todo: error, concurrent modifications to clients
             List<Integer> processNums = clients.stream()
                     .map(socketConn -> getProcessNum(socketConn))
                     .collect(Collectors.toList());
-            IntStream.range(0, clients.size())
-                    .forEach(i -> {
-                        if (processNums.get(i) < 0){
-                            clients.remove(i);
-                            processNums.remove(i);
-                            LOGGER.log(Level.INFO, "Removing a disconnected " +
-                                    "client from the connection pool");
-                        }
-                    });
+            processNums = updateClientNum(processNums);
             Double avg = processNums.stream()
                     .mapToInt(Integer::intValue)
                     .average()
@@ -226,6 +217,19 @@ public class Master extends AbstractProcessManager{
                     .sum();
             transportNums.add(-1 * offset);
             return transportNums;
+        }
+
+        private List<Integer> updateClientNum(List<Integer> processNums){
+            List<SocketConn> filteredClients = new ArrayList<>();
+            List<Integer> filteredProcessNums = new ArrayList<>();
+            for (int i = 0; i < processNums.size(); i++){
+                if (processNums.get(i) >= 0){
+                    filteredClients.add(clients.get(i));
+                    filteredProcessNums.add(processNums.get(i));
+                }
+            }
+            clients = filteredClients;
+            return filteredProcessNums;
         }
 
         /**
