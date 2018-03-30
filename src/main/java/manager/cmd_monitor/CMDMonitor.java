@@ -114,8 +114,9 @@ public class CMDMonitor extends Thread {
                     AbstractMigratableProcessImpl proc =
                             (AbstractMigratableProcessImpl)ctr.newInstance(
                                     (Object)args);
-                    new Thread(proc).start();
-                    manager.addProcess(proc);
+                    Thread newT = new Thread(proc);
+                    newT.start();
+                    manager.addProcess(newT, proc);
                 }catch(NoSuchMethodException e){
                     LOGGER.log(Level.INFO, "Constructor of {0} taking {1} " +
                             "doesn't exist", new Object[]{className, argType});

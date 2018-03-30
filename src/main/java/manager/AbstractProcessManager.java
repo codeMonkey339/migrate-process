@@ -11,7 +11,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -21,7 +23,8 @@ abstract public class AbstractProcessManager {
     private final static Logger LOGGER = Logger.getLogger(AbstractProcessManager
             .class.getName());
     @Getter
-    protected List<MigratableProcess> processes = new ArrayList<>();
+    protected List<Thread> processes = new ArrayList<>();
+    protected Map<Thread, AbstractMigratableProcessImpl> threads = new HashMap<>();
 
 
     @Getter
@@ -53,9 +56,10 @@ abstract public class AbstractProcessManager {
 
     }
 
-    public void addProcess(AbstractMigratableProcessImpl process){
+    public void addProcess(Thread t, AbstractMigratableProcessImpl p){
         //todo: synchronize
-        processes.add(process);
+        processes.add(t);
+        threads.put(t, p);
     }
 
     public void quit(){

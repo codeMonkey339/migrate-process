@@ -5,24 +5,21 @@ import transactional.TransactionalFileInputStream;
 import transactional.TransactionalFileOutputStream;
 
 import java.io.IOException;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class ZipMigratableProcessImpl extends AbstractMigratableProcessImpl {
     private static final int SLEEP_TIME = 6000; // in milliseconds
     private static final int READ_SIZE = 1000; // # of bytes for each read
-    private transient Logger LOGGER = Logger.getLogger(ZipMigratableProcessImpl.class
-            .getName());
-    private boolean running;
+    //todo: how to handle transient object in serialization?
+    private transient Logger LOGGER = null;
+    private TransactionalFileOutputStream os = null;
+    private TransactionalFileInputStream is = null;
 
     public ZipMigratableProcessImpl(String[] arguments) {
         super(arguments);
         running = true;
-    }
-
-    public void suspend() {
-        //todo: does this operation have to be synchronized?
-        running = false;
     }
 
     @Override
@@ -32,11 +29,16 @@ public class ZipMigratableProcessImpl extends AbstractMigratableProcessImpl {
 
     private void zipFile(String input, String output){
         //todo: currently only write the input to output. Need to zip!
+        if (Objects.isNull(LOGGER)){
+            LOGGER = Logger.getLogger(ZipMigratableProcessImpl.class.getName());
+        }
         LOGGER.log(Level.INFO, "Start zipping a file");
-        TransactionalFileOutputStream os = new TransactionalFileOutputStream
-                (output);
-        TransactionalFileInputStream is = new TransactionalFileInputStream
-                (input);
+        if (Objects.isNull(os)){
+            os = new TransactionalFileOutputStream(output);
+        }
+        if (Objects.isNull(is)){
+            is = new TransactionalFileInputStream(input);
+        }
         while(running){
             try{
                 Thread.sleep(SLEEP_TIME);
@@ -49,7 +51,8 @@ public class ZipMigratableProcessImpl extends AbstractMigratableProcessImpl {
                     os.write(buffer, 0, readn);
                 }
             }catch(InterruptedException e){
-                LOGGER.log(Level.INFO, "Interrupted in sleep when zipping a file");
+                LOGGER.log(Level.INFO, "Interrupted in sleep when zipping a " +
+                        "file");
             }catch (IOException e){
                 throw new RuntimeException("IO error when zipping the file");
             }

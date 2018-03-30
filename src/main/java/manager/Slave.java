@@ -5,6 +5,7 @@ import manager.entity.SocketConn;
 import manager.msg.Message;
 import manager.parser.ArgParser;
 import manager.parser.ParsedArgs;
+import processes.AbstractMigratableProcessImpl;
 import processes.MigratableProcess;
 import utils.ExceptionUtils;
 
@@ -14,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import static java.util.logging.Level.INFO;
 import static java.util.logging.Level.WARNING;
@@ -97,15 +99,25 @@ public class Slave extends AbstractProcessManager {
         LOGGER.log(INFO, "Slave handling incoming query to pull overloaded " +
                 "processes");
         Integer num = query.getObjNum();
-        List<MigratableProcess> shifts = new ArrayList<>(processes.subList(0, num));
+        List<Thread> shifts = new ArrayList<>(processes.subList
+                (0, num));
+        List<MigratableProcess> procs = shifts.stream()
+                .map(t -> {
+                    AbstractMigratableProcessImpl p =threads.get(t);
+                    p.suspend();
+                    threads.remove(t);
+                    return p;
+                })
+                .collect(Collectors.toList());
         ObjectOutputStream os = conn.getOut();
         Message reply = Message.builder()
                 .type(MigOut)
                 .objNum(num)
-                .processes(shifts)
+                .processes(procs)
                 .build();
         try{
             os.writeObject(reply);
+            processes.removeAll(shifts);
         }catch (IOException e){
             LOGGER.log(WARNING, "IOException occurred when reply numer of " +
                     "processes running on the slave.\n{0}", ExceptionUtils
@@ -116,9 +128,17 @@ public class Slave extends AbstractProcessManager {
 
     private void handleMiginQuery(Message query){
         //todo: synchronization
-        LOGGER.log(INFO, "Slave receiving incoming processes");
+        LOGGER.log(INFO, "Slave receiving {0} incoming processes", query
+                .getProcesses().size());
         List<MigratableProcess> newProcs = (List)query.getProcesses();
-        processes.addAll(newProcs);
+        List<Thread> newThreads = newProcs.stream()
+                .map(p -> {
+                    Thread t = new Thread(p);
+                    t.start();
+                    return t;
+                })
+                .collect(Collectors.toList());
+        processes.addAll(newThreads);
     }
 
 

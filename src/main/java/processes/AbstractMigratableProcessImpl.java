@@ -7,6 +7,8 @@ import java.util.Arrays;
 public abstract class AbstractMigratableProcessImpl implements MigratableProcess {
     @Getter
     private final String[] args;
+    protected boolean running;
+
     public AbstractMigratableProcessImpl(String[] arguments){
         args = arguments;
     }
@@ -17,5 +19,11 @@ public abstract class AbstractMigratableProcessImpl implements MigratableProcess
         Arrays.asList(args).stream()
                 .forEach(arg -> {builder.append(args);builder.append(" ");});
         return builder.substring(0, builder.length() - 1);
+    }
+
+    @Override
+    public void suspend() {
+        //todo: does this operation have to be synchronized?
+        running = false;
     }
 }

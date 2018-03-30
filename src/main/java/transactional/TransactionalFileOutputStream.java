@@ -6,7 +6,7 @@ import java.util.Random;
 public class TransactionalFileOutputStream extends OutputStream implements Serializable{
     private final String filename;
     private int offset;
-    private RandomAccessFile f;
+    private transient RandomAccessFile f;
 
     public TransactionalFileOutputStream(String filname){
         this.filename = filname;
