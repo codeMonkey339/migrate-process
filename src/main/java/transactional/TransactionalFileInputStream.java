@@ -1,19 +1,41 @@
 package transactional;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.Serializable;
+import java.io.*;
+import java.util.Random;
 
 public class TransactionalFileInputStream extends InputStream implements Serializable{
+    private final String filename;
+    private int offset;
+    private RandomAccessFile f;
+
+    public TransactionalFileInputStream(String filename){
+        this.filename = filename;
+        offset = 0;
+    }
+
     /**
-     * requires a void suspend(void) method which will be called before the
-     * object is serialized to allow an opportunity for the process to enter
-     * a known safe state
      * @return
      * @throws IOException
      */
     public int read() throws IOException {
-        return 0;
+        int b = f.read();
+        offset++;
+        return b;
     }
+
+    /**
+     * read desired number of bytes into the provided buffer
+     * @param buffer
+     * @return
+     * @throws IOException
+     */
+    @Override
+    public int read(byte buffer[]) throws IOException{
+        f = new RandomAccessFile(filename, "r");
+        f.seek(offset);
+        int readn= super.read(buffer);
+        f.close();
+        return readn;
+    }
+
 }

@@ -1,18 +1,38 @@
 package transactional;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.Serializable;
+import java.io.*;
+import java.util.Random;
 
 public class TransactionalFileOutputStream extends OutputStream implements Serializable{
+    private final String filename;
+    private int offset;
+    private RandomAccessFile f;
+
+    public TransactionalFileOutputStream(String filname){
+        this.filename = filname;
+        offset = 0;
+    }
+
     /**
-     * requires a void suspend(void) method which will be called before the
-     * object is serialized to allow an opportunity for the process to enter
-     * a known safe state
+     * provides an implementation for the abstract write method
      * @return
      * @throws IOException
      */
     public void write(int b) throws IOException {
-
+        f.write(b);
+        offset++;
     }
+
+    /**
+     * actually this overriding method is unnecesary
+     * @param data
+     * @throws IOException
+     */
+    @Override
+    public void write(byte[] data) throws IOException{
+        f = new RandomAccessFile(filename, "w");
+        super.write(data);
+        f.close();
+    }
+
 }
