@@ -62,7 +62,7 @@ public class Slave extends AbstractProcessManager {
                 handleGetQuery(query);
                 break;
             case MigIn:
-                handleMigoutQuery(query);
+                handleMiginQuery(query);
                 break;
             default:
                 LOGGER.log(INFO,"Unknown type of incoming query {0}", query
@@ -71,7 +71,7 @@ public class Slave extends AbstractProcessManager {
     }
 
     private void handleNumQuery(Message query){
-        //todo: need to add a block here to avoid concurrent access
+        //todo: need to handle concurrent access
         LOGGER.log(INFO, "Slave handling incoming query for number of " +
                 "running processes");
         Message reply = Message.builder()
@@ -113,7 +113,7 @@ public class Slave extends AbstractProcessManager {
 
     }
 
-    private void handleMigoutQuery(Message query){
+    private void handleMiginQuery(Message query){
         //todo: synchronization
         LOGGER.log(INFO, "Slave receiving incoming processes");
         List<MigratableProcess> newProcs = (List)query.getProcesses();
@@ -132,7 +132,7 @@ public class Slave extends AbstractProcessManager {
         cmdThread.start();
         try{
             queryThread.join();
-            queryThread.join();
+            cmdThread.join();
             conn.getClient().close();
             LOGGER.log(INFO, "quiting the slave process manager");
         }catch (InterruptedException e){

@@ -5,12 +5,20 @@ import manager.AbstractProcessManager;
 import manager.parser.ArgParser;
 import manager.parser.CMDParser;
 import manager.parser.ParsedCMD;
+import processes.AbstractMigratableProcessImpl;
+import utils.ExceptionUtils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.rmi.AccessException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 public class CMDMonitor extends Thread {
     private final AbstractProcessManager manager;
@@ -70,8 +78,61 @@ public class CMDMonitor extends Thread {
         }
     }
 
+    /**
+     * Requests come in the form <processName> [arg1] [arg2] ...
+     * If an invalid class is named(does not exist or does not implement
+     * MigratableProcess, then an appropriate message should be printed and
+     * operations should continue as normal
+     *
+     * @param parsedCMD
+     */
     private void processNewProcess(ParsedCMD parsedCMD){
-        //todo:
+        String args[] = parsedCMD.getArgs();
+        String className = args[0];
+
+        try{
+            Class c = Class.forName(className);
+            Class interfaces[] = c.getInterfaces();
+            List<String> requiredInterfaces = Arrays.asList("Runnable",
+                    "Serializable");
+            Arrays.stream(interfaces)
+                    .forEach(i -> {
+                        if (requiredInterfaces.contains(i)){
+                            requiredInterfaces.remove(i);
+                        }
+                    });
+            if (requiredInterfaces.size() == 0){
+                String[] params = Arrays.copyOfRange(args, 1, args.length);
+                List<Class> paramsTypes = Arrays.stream(params)
+                        .map(i -> i.getClass())
+                        .collect(Collectors.toList());
+                try{
+                    Constructor ctr = c.getConstructor( (Class[])paramsTypes.toArray
+                            ());
+                    AbstractMigratableProcessImpl proc = (AbstractMigratableProcessImpl)ctr.newInstance
+                            (params);
+                    proc.run();
+                }catch(NoSuchMethodException e){
+                    LOGGER.log(Level.INFO, "Constructor of {0} taking {1} " +
+                            "doesn't exist", new Object[]{className, paramsTypes});
+                }catch(InstantiationException e){
+                    LOGGER.log(Level.INFO, "{0}", ExceptionUtils
+                            .stackTrace2String(e));
+                }catch(InvocationTargetException e){
+                    LOGGER.log(Level.INFO, "{0}", ExceptionUtils
+                            .stackTrace2String(e));
+                }catch(IllegalAccessException e){
+                    LOGGER.log(Level.INFO, "{0}", ExceptionUtils
+                            .stackTrace2String(e));
+                }
+            }else{
+                LOGGER.log(Level.INFO, "Instantiating a class that doesn't " +
+                        "implement the required Runnable and Serializable " +
+                        "interface");
+            }
+        }catch(ClassNotFoundException e){
+            LOGGER.log(Level.INFO, "Instantiating a not found class {0}", className);
+        }
     }
 
     private void processPS(ParsedCMD parsedCMD){
