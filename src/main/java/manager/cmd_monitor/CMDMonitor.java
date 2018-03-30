@@ -91,34 +91,33 @@ public class CMDMonitor extends Thread {
      * @param parsedCMD
      */
     private void processNewProcess(ParsedCMD parsedCMD){
-        String args[] = parsedCMD.getArgs();
+        String[] args = parsedCMD.getArgs();
         String className = args[0];
 
         try{
             Class c = Class.forName(MIGRATABLE_PROCESS_PACKAGE.concat(".")
                     .concat(className));
-            List<Class> interfaces = getInterfaces(c);
-            List<String> requiredInterfaces = Arrays.asList("Runnable",
-                    "Serializable");
+            List<String> interfaces = getInterfaces(c).stream()
+                    .map(i -> i.getName())
+                    .collect(Collectors.toList());
+            List<String> requiredInterfaces = new ArrayList<>(Arrays.asList
+                    ("java.lang.Runnable", "java.io.Serializable"));
             interfaces.forEach(i -> {
                         if (requiredInterfaces.contains(i)){
                             requiredInterfaces.remove(i);
                         }
                     });
             if (requiredInterfaces.size() == 0){
-                String[] params = Arrays.copyOfRange(args, 1, args.length);
-                List<Class> paramsTypes = Arrays.stream(params)
-                        .map(i -> i.getClass())
-                        .collect(Collectors.toList());
+                Class argType = String[].class;
                 try{
-                    Constructor ctr = c.getConstructor( (Class[])paramsTypes.toArray
-                            ());
-                    AbstractMigratableProcessImpl proc = (AbstractMigratableProcessImpl)ctr.newInstance
-                            (params);
+                    Constructor ctr = c.getConstructor(argType);
+                    AbstractMigratableProcessImpl proc =
+                            (AbstractMigratableProcessImpl)ctr.newInstance(
+                                    (Object)args);
                     proc.run();
                 }catch(NoSuchMethodException e){
                     LOGGER.log(Level.INFO, "Constructor of {0} taking {1} " +
-                            "doesn't exist", new Object[]{className, paramsTypes});
+                            "doesn't exist", new Object[]{className, argType});
                 }catch(InstantiationException e){
                     LOGGER.log(Level.INFO, "{0}", ExceptionUtils
                             .stackTrace2String(e));
@@ -135,7 +134,8 @@ public class CMDMonitor extends Thread {
                         "interface");
             }
         }catch(ClassNotFoundException e){
-            LOGGER.log(Level.INFO, "Instantiating a not found class {0}", className);
+            LOGGER.log(Level.INFO, "Instantiating a not found class {0}",
+                    className);
         }
     }
 
@@ -166,14 +166,11 @@ public class CMDMonitor extends Thread {
         if (Objects.nonNull(superClass)){
             parentInterfaces = getInterfaces(superClass);
         }
-        Class interfaces[] = c.getInterfaces();
-        result = Arrays.asList(interfaces);
-        if (parentInterfaces.size() > 0){
-            return Stream.concat(parentInterfaces.stream(), result.stream())
-                    .collect(Collectors.toList());
-        }else{
-            return result;
-        }
+        Arrays.stream(c.getInterfaces())
+                .forEach(type -> result.addAll(getInterfaces(type)));
+        result.add(c);
+        return Stream.concat(parentInterfaces.stream(), result.stream())
+                .collect(Collectors.toList());
     }
 
 }

@@ -24,7 +24,7 @@ abstract public class AbstractProcessManager {
 
 
     @Getter
-    private static final int DURATION = 500; // sleep time
+    private static final int DURATION = 3000; // sleep time
     protected boolean running = true;
 
     /**

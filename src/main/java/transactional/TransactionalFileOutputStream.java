@@ -30,8 +30,15 @@ public class TransactionalFileOutputStream extends OutputStream implements Seria
      */
     @Override
     public void write(byte[] data) throws IOException{
-        f = new RandomAccessFile(filename, "w");
+        f = new RandomAccessFile(filename, "rw");
         super.write(data);
+        f.close();
+    }
+
+    @Override
+    public void write(byte b[], int off, int len) throws IOException{
+        f = new RandomAccessFile(filename, "rw");
+        super.write(b, off, len);
         f.close();
     }
 

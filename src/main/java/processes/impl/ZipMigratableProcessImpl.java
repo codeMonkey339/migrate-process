@@ -9,7 +9,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class ZipMigratableProcessImpl extends AbstractMigratableProcessImpl {
-    private static final int SLEEP_TIME = 1000; // in milliseconds
+    private static final int SLEEP_TIME = 6000; // in milliseconds
     private static final int READ_SIZE = 100; // # of bytes for each read
     Logger LOGGER = Logger.getLogger(ZipMigratableProcessImpl.class.getName());
     private boolean running;
@@ -25,7 +25,7 @@ public class ZipMigratableProcessImpl extends AbstractMigratableProcessImpl {
     }
 
     public void run() {
-        zipFile(super.getArgs()[0], super.getArgs()[1]);
+        zipFile(super.getArgs()[1], super.getArgs()[2]);
     }
 
     private void zipFile(String input, String output){
@@ -40,7 +40,12 @@ public class ZipMigratableProcessImpl extends AbstractMigratableProcessImpl {
                 Thread.sleep(SLEEP_TIME);
                 byte buffer[] = new byte[READ_SIZE];
                 int readn = is.read(buffer);
-                os.write(buffer, 0, readn);
+                if (readn < 0){
+                    LOGGER.log(Level.INFO, "Finished zipping a file");
+                    return;
+                }else{
+                    os.write(buffer, 0, readn);
+                }
             }catch(InterruptedException e){
                 LOGGER.log(Level.INFO, "Interrupted in sleep when zipping a file");
             }catch (IOException e){
