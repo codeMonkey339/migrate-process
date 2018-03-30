@@ -48,6 +48,7 @@ public class ZipMigratableProcessImpl extends AbstractMigratableProcessImpl {
                     LOGGER.log(Level.INFO, "Finished zipping a file");
                     return;
                 }else{
+                    LOGGER.log(Level.INFO, "Reading char num {0}", readn);
                     os.write(buffer, 0, readn);
                 }
             }catch(InterruptedException e){
