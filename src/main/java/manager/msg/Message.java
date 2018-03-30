@@ -1,7 +1,9 @@
 package manager.msg;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import processes.MigratableProcess;
 
 import java.io.Serializable;
@@ -10,6 +12,8 @@ import java.util.List;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Message implements Serializable{
     private static final long serialVersionUID = 4181753163487752139L;
 

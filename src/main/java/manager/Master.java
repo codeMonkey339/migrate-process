@@ -173,13 +173,16 @@ public class Master extends AbstractProcessManager{
                             processes = processes.subList(-1 * shift,
                                     processes.size());
                         }else{
-                            procs = processes.subList(0, processes.size());
+                            procs = new ArrayList<>(processes.subList(0, processes.size
+                                    ()));
                             processes.removeAll(processes);
                         }
                         conn.getOut().writeObject(Message.builder()
                                 .type(MigIn)
                                 .objNum(-1 * shift)
-                                .processes(procs));
+                                .processes(procs)
+                                .build()
+                        );
                         if (processes.size() == 0){
                             return;
                         }

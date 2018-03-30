@@ -97,7 +97,7 @@ public class Slave extends AbstractProcessManager {
         LOGGER.log(INFO, "Slave handling incoming query to pull overloaded " +
                 "processes");
         Integer num = query.getObjNum();
-        List<MigratableProcess> shifts = processes.subList(0, num);
+        List<MigratableProcess> shifts = new ArrayList<>(processes.subList(0, num));
         ObjectOutputStream os = conn.getOut();
         Message reply = Message.builder()
                 .type(MigOut)
@@ -108,7 +108,8 @@ public class Slave extends AbstractProcessManager {
             os.writeObject(reply);
         }catch (IOException e){
             LOGGER.log(WARNING, "IOException occurred when reply numer of " +
-                    "processes running on the slave");
+                    "processes running on the slave.\n{0}", ExceptionUtils
+                    .stackTrace2String(e));
         }
 
     }

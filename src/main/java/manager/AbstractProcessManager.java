@@ -4,6 +4,7 @@ import lombok.Getter;
 import manager.load_balancer.LoadBalancer;
 import manager.parser.CMDParser;
 import manager.parser.ParsedCMD;
+import processes.AbstractMigratableProcessImpl;
 import processes.MigratableProcess;
 
 import java.io.BufferedReader;
@@ -50,6 +51,11 @@ abstract public class AbstractProcessManager {
             new Slave().run(args);
         }
 
+    }
+
+    public void addProcess(AbstractMigratableProcessImpl process){
+        //todo: synchronize
+        processes.add(process);
     }
 
     public void quit(){

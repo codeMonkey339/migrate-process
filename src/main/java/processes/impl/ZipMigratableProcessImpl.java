@@ -10,8 +10,9 @@ import java.util.logging.Logger;
 
 public class ZipMigratableProcessImpl extends AbstractMigratableProcessImpl {
     private static final int SLEEP_TIME = 6000; // in milliseconds
-    private static final int READ_SIZE = 100; // # of bytes for each read
-    Logger LOGGER = Logger.getLogger(ZipMigratableProcessImpl.class.getName());
+    private static final int READ_SIZE = 1000; // # of bytes for each read
+    private transient Logger LOGGER = Logger.getLogger(ZipMigratableProcessImpl.class
+            .getName());
     private boolean running;
 
     public ZipMigratableProcessImpl(String[] arguments) {
@@ -24,6 +25,7 @@ public class ZipMigratableProcessImpl extends AbstractMigratableProcessImpl {
         running = false;
     }
 
+    @Override
     public void run() {
         zipFile(super.getArgs()[1], super.getArgs()[2]);
     }
