@@ -14,10 +14,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.logging.Level;
-import java.util.logging.LogManager;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import static manager.msg.Message.TYPE.GET;
 import static manager.msg.Message.TYPE.MigIn;
@@ -61,13 +59,15 @@ public class Master extends AbstractProcessManager{
                             .getInputStream());
                     ObjectOutputStream os = new ObjectOutputStream(client
                             .getOutputStream());
-                    clients.add(SocketConn.builder()
-                            .client(client)
-                            .in(is)
-                            .out(os)
-                            .build());
-                    LOGGER.log(Level.INFO, "Server accepted a new connection" +
-                            " request from slave");
+                    synchronized (clients){
+                        clients.add(SocketConn.builder()
+                                .client(client)
+                                .in(is)
+                                .out(os)
+                                .build());
+                        LOGGER.log(Level.INFO, "Server accepted a new connection" +
+                                " request from slave");
+                    }
                 }catch (IOException e){
                     LOGGER.log(Level.INFO, "Failed to accept a connection " +
                             "from a new client {0}", e.toString());
@@ -76,6 +76,9 @@ public class Master extends AbstractProcessManager{
         }
     }
 
+    /**
+     * load balancing class for migratable processes
+     */
     private class LoadDistributor extends Thread{
         @Override
         public void run(){
@@ -90,13 +93,14 @@ public class Master extends AbstractProcessManager{
                     LOGGER.log(Level.INFO, "Thread Interrupted from " +
                             "sleep");
                 }
+                synchronized (clients){
+                    if (clients.size() < 2){
+                        continue;
+                    }
 
-                if (clients.size() < 2){
-                    continue;
+                    List<Integer> shifts = findTransNums(clients);
+                    transportProcesses(clients, shifts);
                 }
-
-                List<Integer> shifts = findTransNums(clients);
-                transportProcesses(clients, shifts);
             }
             LOGGER.log(Level.INFO, "Exiting the thread for balancing load " +
                     "among classes");
@@ -197,7 +201,6 @@ public class Master extends AbstractProcessManager{
 
 
         private List<Integer> findTransNums(List<SocketConn> clients){
-            //todo: assume server itself won't process processes now
             LOGGER.log(Level.INFO, "Finding the transport number of " +
                     "different slaves");
             List<Integer> processNums = clients.stream()
@@ -210,7 +213,7 @@ public class Master extends AbstractProcessManager{
                     .getAsDouble();
             List<Integer> transportNums = processNums.subList(0,
                     processNums.size() - 1).stream()
-                    .map(i -> (int)Math.ceil(i - avg))
+                    .map(i -> (int)Math.floor(i - avg))
                     .collect(Collectors.toList());
             Integer offset = transportNums.stream()
                     .mapToInt(Integer::intValue)
@@ -260,6 +263,10 @@ public class Master extends AbstractProcessManager{
         }
     }
 
+    /**
+     * assume that master is not going to handle processes
+     * @param args
+     */
     @Override
     public void run(String[] args){
         LOGGER.log(Level.INFO, "Starting the server running at " +

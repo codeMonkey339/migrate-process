@@ -73,20 +73,21 @@ public class Slave extends AbstractProcessManager {
     }
 
     private void handleNumQuery(Message query){
-        //todo: need to handle concurrent access
         LOGGER.log(INFO, "Slave handling incoming query for number of " +
                 "running processes");
-        Message reply = Message.builder()
-                .type(Num)
-                .objNum(processes.size())
-                .processes(new ArrayList<>())
-                .build();
-        ObjectOutputStream os = conn.getOut();
-        try{
-            os.writeObject(reply);
-        }catch (IOException e){
-            LOGGER.log(WARNING, "IOException occurred when reply numer of " +
-                    "processes running on the slave");
+        synchronized (processes){
+            Message reply = Message.builder()
+                    .type(Num)
+                    .objNum(processes.size())
+                    .processes(new ArrayList<>())
+                    .build();
+            ObjectOutputStream os = conn.getOut();
+            try{
+                os.writeObject(reply);
+            }catch (IOException e){
+                LOGGER.log(WARNING, "IOException occurred when reply numer of " +
+                        "processes running on the slave");
+            }
         }
     }
 
@@ -95,50 +96,54 @@ public class Slave extends AbstractProcessManager {
      * @param query
      */
     private void handleGetQuery(Message query){
-        //todo: synchronization problem
         LOGGER.log(INFO, "Slave handling incoming query to pull overloaded " +
                 "processes");
-        Integer num = query.getObjNum();
-        List<Thread> shifts = new ArrayList<>(processes.subList
-                (0, num));
-        List<MigratableProcess> procs = shifts.stream()
-                .map(t -> {
-                    AbstractMigratableProcessImpl p =threads.get(t);
-                    p.suspend();
-                    threads.remove(t);
-                    return p;
-                })
-                .collect(Collectors.toList());
-        ObjectOutputStream os = conn.getOut();
-        Message reply = Message.builder()
-                .type(MigOut)
-                .objNum(num)
-                .processes(procs)
-                .build();
-        try{
-            os.writeObject(reply);
-            processes.removeAll(shifts);
-        }catch (IOException e){
-            LOGGER.log(WARNING, "IOException occurred when reply numer of " +
-                    "processes running on the slave.\n{0}", ExceptionUtils
-                    .stackTrace2String(e));
+        synchronized (processes){
+            Integer num = query.getObjNum();
+            List<Thread> shifts = new ArrayList<>(processes.subList
+                    (0, num));
+            List<MigratableProcess> procs = shifts.stream()
+                    .map(t -> {
+                        AbstractMigratableProcessImpl p =threads.get(t);
+                        p.suspend();
+                        threads.remove(t);
+                        return p;
+                    })
+                    .collect(Collectors.toList());
+            ObjectOutputStream os = conn.getOut();
+            Message reply = Message.builder()
+                    .type(MigOut)
+                    .objNum(num)
+                    .processes(procs)
+                    .build();
+            try{
+                os.writeObject(reply);
+                processes.removeAll(shifts);
+                LOGGER.log(INFO, "Transferring out {0} processes", shifts.size());
+            }catch (IOException e){
+                LOGGER.log(WARNING, "IOException occurred when reply numer of " +
+                        "processes running on the slave.\n{0}", ExceptionUtils
+                        .stackTrace2String(e));
+            }
         }
-
     }
 
     private void handleMiginQuery(Message query){
-        //todo: synchronization
         LOGGER.log(INFO, "Slave receiving {0} incoming processes", query
                 .getProcesses().size());
-        List<MigratableProcess> newProcs = (List)query.getProcesses();
-        List<Thread> newThreads = newProcs.stream()
-                .map(p -> {
-                    Thread t = new Thread(p);
-                    t.start();
-                    return t;
-                })
-                .collect(Collectors.toList());
-        processes.addAll(newThreads);
+        synchronized (processes){
+            List<MigratableProcess> newProcs = (List)query.getProcesses();
+            List<Thread> newThreads = newProcs.stream()
+                    .map(p -> {
+                        Thread t = new Thread(p);
+                        t.start();
+                        return t;
+                    })
+                    .collect(Collectors.toList());
+            processes.addAll(newThreads);
+            LOGGER.log(INFO, "Tranferring in {0} processes", newProcs.size());
+        }
+
     }
 
 

@@ -14,10 +14,7 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.rmi.AccessException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -49,7 +46,6 @@ public class CMDMonitor extends Thread {
         BufferedReader reader = new BufferedReader(new InputStreamReader
                 (System.in));
         while(running){
-            //todo: how can this loop be more efficient
             try{
                 Thread.sleep(AbstractProcessManager.getDURATION());
                 String cmd = reader.readLine();
@@ -142,10 +138,14 @@ public class CMDMonitor extends Thread {
     }
 
     private void processPS(ParsedCMD parsedCMD){
-        if (manager.getProcesses().size() == 0){
+        Map<Thread, AbstractMigratableProcessImpl> threadMap = manager
+                .getProcMap();
+        Set<Thread>  threads = threadMap.keySet();
+        Collection<AbstractMigratableProcessImpl> procs = threadMap.values();
+        if (threads.size() == 0){
             System.out.println("no running processes");
         }else{
-            manager.getProcesses().stream()
+            procs.stream()
                     .forEach(proc -> System.out.println(proc.toString()));
         }
     }

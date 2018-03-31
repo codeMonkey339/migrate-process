@@ -16,8 +16,10 @@ public abstract class AbstractMigratableProcessImpl implements MigratableProcess
     @Override
     public String toString(){
         StringBuffer builder = new StringBuffer();
+        builder.append(this.getClass().getName());
+        builder.append(" ");
         Arrays.asList(args).stream()
-                .forEach(arg -> {builder.append(args);builder.append(" ");});
+                .forEach(arg -> {builder.append(arg);builder.append(" ");});
         return builder.substring(0, builder.length() - 1);
     }
 

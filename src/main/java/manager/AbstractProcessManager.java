@@ -22,7 +22,6 @@ abstract public class AbstractProcessManager {
     private LoadBalancer loadBalancer;
     private final static Logger LOGGER = Logger.getLogger(AbstractProcessManager
             .class.getName());
-    @Getter
     protected List<Thread> processes = new ArrayList<>();
     protected Map<Thread, AbstractMigratableProcessImpl> threads = new HashMap<>();
 
@@ -41,13 +40,10 @@ abstract public class AbstractProcessManager {
      */
     protected void init(){
         parser = new CMDParser();
-        loadBalancer = new LoadBalancer(this);
     }
 
 
     public static void main(String[] args){
-        //todo: main in an abstract class?
-        //todo: based on args, instantiate different type
         if (args.length <= 1){
             new Master().run(args);
         }else{
@@ -57,10 +53,24 @@ abstract public class AbstractProcessManager {
     }
 
     public void addProcess(Thread t, AbstractMigratableProcessImpl p){
-        //todo: synchronize
-        processes.add(t);
-        threads.put(t, p);
+        synchronized (processes){
+            processes.add(t);
+            threads.put(t, p);
+        }
     }
+
+    public List<Thread> getProcesses(){
+        synchronized (processes){
+            return processes;
+        }
+    }
+
+    public Map<Thread, AbstractMigratableProcessImpl> getProcMap(){
+        synchronized (threads){
+            return threads;
+        }
+    }
+
 
     public void quit(){
         running = false;
